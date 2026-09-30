@@ -16,11 +16,33 @@ const storage = multer.diskStorage({
     return cb(null, `${Date.now()}-${file.originalname}`);
   },
 });
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 3 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.mimetype)) {
+      return cb(new Error("Profile image must be a JPG, PNG, or WebP file."));
+    }
+    return cb(null, true);
+  },
+});
+
+function handleProfileImageUpload(req, res, next) {
+  upload.single("image")(req, res, (error) => {
+    if (!error) return next();
+    if (error.code === "LIMIT_FILE_SIZE") {
+      return res.status(413).json({
+        msg: "Profile image must be 3 MB or smaller.",
+      });
+    }
+    return res.status(400).json({ msg: error.message });
+  });
+}
 
 const handleCreateNewServiceProvider = async (req, res) => {
-  console.log("handleCreateNewServiceProvider called");
-  console.log(req.body);
+  console.info("[provider-signup] profile creation started", {
+    hasImage: Boolean(req.file),
+  });
 
   try {
     const {
@@ -33,7 +55,6 @@ const handleCreateNewServiceProvider = async (req, res) => {
       aboutYou,
       gender,
       jobCategory,
-      location,
       salary,
       workDescription,
     } = req.body;
@@ -51,7 +72,6 @@ const handleCreateNewServiceProvider = async (req, res) => {
       !aboutYou ||
       !gender ||
       !jobCategory ||
-      !location ||
       !salary ||
       !workDescription
     ) {
@@ -107,7 +127,7 @@ const handleCreateNewServiceProvider = async (req, res) => {
       gender,
       image: secure_url,
       jobCategory,
-      location,
+      location: null,
       salary,
       workDescription,
     });
@@ -184,10 +204,7 @@ const handlegetallServiceProvider = async (req, res) => {
 
 module.exports = {
   handlegetallServiceProvider,
-  handleCreateNewServiceProvider: [
-    upload.single("image"),
-    handleCreateNewServiceProvider,
-  ],
+  handleCreateNewServiceProvider: [handleProfileImageUpload, handleCreateNewServiceProvider],
   handleLogInServiceProvider,
   handleVerifyToken,
 };

@@ -48,8 +48,8 @@ const ServiceProviderSchema = new mongoose.Schema(
     },
 
     location: {
-      type: {},
-      require: true,
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
     },
 
     salary: {
