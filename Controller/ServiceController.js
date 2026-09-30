@@ -3,7 +3,7 @@ const { setUser, getUser } = require("../services/auth");
 const ServiceProvider = require("../Models/ServiceProviderModel");
 const User = require("../Models/UserModel");
 require("dotenv").config();
-const { sendHtmlMail, smtpConfigured } = require("../services/mailer");
+const { sendHtmlMail, mailConfigured } = require("../services/mailer");
 
 const {
   NewRequestMailFormet,
@@ -67,7 +67,7 @@ const handleCreateNewService = async (req, res) => {
     description,
   });
 
-  if (smtpConfigured) {
+  if (mailConfigured) {
     try {
       await sendHtmlMail({
         to: providerEmail,
@@ -184,7 +184,7 @@ const handleAcceptReq = async (req, res) => {
       providerEmail,
     });
 
-    if (smtpConfigured) {
+    if (mailConfigured) {
       try {
         await sendHtmlMail({
           to: userEmail,
@@ -238,7 +238,7 @@ const handleRejectReq = async (req, res) => {
       providerName,
     });
 
-    if (smtpConfigured) {
+    if (mailConfigured) {
       try {
         await sendHtmlMail({
           to: userEmail,

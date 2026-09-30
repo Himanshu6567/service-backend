@@ -8,8 +8,8 @@ const Message = require("../Models/MessageModel");
 const ServiceInitial = require("../Models/ServiceInitialSchema");
 const Feedbacks = require("../Models/FeedbackSchema");
 
-const ADMIN_EMAIL = "Admin@gmail.com";
-const ADMIN_PASSWORD = "123456789";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "Admin@gmail.com";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "123456789";
 
 function safeEqual(value, expected) {
   const valueBuffer = Buffer.from(String(value || ""));
@@ -22,7 +22,10 @@ function safeEqual(value, expected) {
 
 const handleAdminLogin = async (req, res) => {
   const { email, password } = req.body || {};
-  if (!safeEqual(email, ADMIN_EMAIL) || !safeEqual(password, ADMIN_PASSWORD)) {
+  if (
+    !safeEqual(String(email || "").trim().toLowerCase(), ADMIN_EMAIL.toLowerCase()) ||
+    !safeEqual(password, ADMIN_PASSWORD)
+  ) {
     return res.status(401).json({ msg: "Invalid admin credentials" });
   }
 
@@ -37,7 +40,13 @@ const handleAdminLogin = async (req, res) => {
   });
   return res
     .status(200)
-    .cookie("token", token, { maxAge: 8 * 60 * 60 })
+    .cookie("token", token, {
+      maxAge: 8 * 60 * 60 * 1000,
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    })
     .json({ role: "admin" });
 };
 
@@ -66,7 +75,13 @@ const handleGetSession = async (req, res) => {
 const handleLogout = async (req, res) =>
   res
     .status(200)
-    .cookie("token", "", { maxAge: 0 })
+    .cookie("token", "", {
+      maxAge: 0,
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    })
     .json({ msg: "Logged out" });
 
 const handleGetAdminDashboard = async (req, res) => {
