@@ -13,11 +13,19 @@ const MessageRoutes = require("./routes/MessageRoute");
 const ServiceRoutes = require("./routes/ServicesRoute");
 const ServiceInitialRoute = require("./routes/ServiceInitialRoute");
 const FeedbacksRoute = require("./routes/feedbacksRoute");
+const {
+  handleAdminLogin,
+  handleGetSession,
+  handleLogout,
+  handleGetAdminDashboard,
+  handleDeleteUser,
+  handleDeleteProvider,
+} = require("./Controller/AdminController");
 
 const { initializeSocket } = require("./socket");
 
 const app = express();
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 8000;
 const server = http.createServer(app); //create server
 const io = initializeSocket(server); //start io server
 
@@ -45,6 +53,12 @@ app.use("/sendMessage", MessageRoutes);
 app.use("/services", ServiceRoutes);
 app.use("/initialService", ServiceInitialRoute);
 app.use("/Feedbacks", FeedbacksRoute);
+app.post("/admin/login", handleAdminLogin);
+app.get("/auth/session", handleGetSession);
+app.post("/auth/logout", handleLogout);
+app.get("/admin/dashboard", handleGetAdminDashboard);
+app.delete("/admin/delete-user/:userId", handleDeleteUser);
+app.delete("/admin/delete-provider/:providerId", handleDeleteProvider);
 
 // servier run
 server.listen(PORT, () => {
