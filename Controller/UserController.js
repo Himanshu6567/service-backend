@@ -72,7 +72,13 @@ const handleLogInUser = async (req, res) => {
 
   return res
     .status(201)
-    .cookie("token", token, { maxAge: 8 * 60 * 60 })
+    .cookie("token", token, {
+      maxAge: 8 * 60 * 60 * 1000,
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    })
     .json({ role: "user", useID: user._id });
 };
 

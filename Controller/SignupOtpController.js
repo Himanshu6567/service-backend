@@ -259,7 +259,7 @@ const handleVerifySignupOtp = async (req, res) => {
       .status(200)
       .json({ msg: "Email verified", role: "serviceProvider" });
   } catch (error) {
-    console.error("Unable to verify signup OTP", error);
+    console.error("Unable to verify signup OTP");
     return res.status(500).json({ msg: "Unable to verify code" });
   }
 };

@@ -163,7 +163,13 @@ const handleLogInServiceProvider = async (req, res) => {
   const token = setUser(user); // generate token
   return res
     .status(201)
-    .cookie("token", token, { maxAge: 8 * 60 * 60 })
+    .cookie("token", token, {
+      maxAge: 8 * 60 * 60 * 1000,
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    })
     .json({ role: "ServiceProvider" });
 };
 

@@ -34,7 +34,10 @@ const handleCreateChatMessage = async (req, res) => {
       message,
     } = req.body;
 
-    if (!currentUser || !message?.trim()) {
+    if (!currentUser) {
+      return res.status(401).json({ msg: "Your session expired. Sign in again." });
+    }
+    if (!message?.trim()) {
       return res.status(400).json({ msg: "Chat data is incomplete" });
     }
 
@@ -73,6 +76,14 @@ const handleCreateChatMessage = async (req, res) => {
 
     return res.status(201).json(chatMessage);
   } catch (error) {
+    console.error(
+      "[chat] message send failed",
+      JSON.stringify({
+        requestId: req.requestId,
+        code: error.code,
+        error: error.message,
+      }),
+    );
     return res.status(500).json({ msg: "Server error", error: error.message });
   }
 };
