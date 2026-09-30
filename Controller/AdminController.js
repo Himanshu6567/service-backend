@@ -7,6 +7,7 @@ const Service = require("../Models/ServiceModel");
 const Message = require("../Models/MessageModel");
 const ServiceInitial = require("../Models/ServiceInitialSchema");
 const Feedbacks = require("../Models/FeedbackSchema");
+const AdminActivity = require("../Models/AdminActivityModel");
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "Admin@gmail.com";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "123456789";
@@ -92,7 +93,15 @@ const handleGetAdminDashboard = async (req, res) => {
   }
 
   try {
-    const [users, providers, requests, messages, serviceCategories, feedback] =
+    const [
+      users,
+      providers,
+      requests,
+      messages,
+      serviceCategories,
+      feedback,
+      activity,
+    ] =
       await Promise.all([
         User.find().select("-password").sort({ createdAt: -1 }).lean(),
         ServiceProvider.find()
@@ -103,6 +112,7 @@ const handleGetAdminDashboard = async (req, res) => {
         Message.find().sort({ createdAt: -1 }).lean(),
         ServiceInitial.find().sort({ title: 1 }).lean(),
         Feedbacks.find().sort({ _id: -1 }).lean(),
+        AdminActivity.find().sort({ createdAt: -1 }).limit(100).lean(),
       ]);
 
     const usersById = new Map(users.map((user) => [user._id.toString(), user]));
@@ -122,8 +132,9 @@ const handleGetAdminDashboard = async (req, res) => {
         requests: requests.length,
         newLeads: requests.filter((request) => request.status === "ReqPending")
           .length,
-        activeJobs: requests.filter((request) => request.status === "Pending")
-          .length,
+        activeJobs: requests.filter((request) =>
+          ["Pending", "Accepted"].includes(request.status),
+        ).length,
         completedJobs: requests.filter(
           (request) => request.status === "Completed",
         ).length,
@@ -137,6 +148,7 @@ const handleGetAdminDashboard = async (req, res) => {
       messages,
       serviceCategories,
       feedback,
+      activity,
     });
   } catch (error) {
     console.error("Unable to load admin dashboard", error);
@@ -153,8 +165,36 @@ const requireAdmin = (req) => {
   return admin;
 };
 
+async function recordAdminActivity(req, admin, action, targetType, target) {
+  try {
+    return await AdminActivity.create({
+      adminEmail: admin.email,
+      action,
+      targetType,
+      targetId: String(target._id),
+      targetName: target.name || "",
+      targetEmail: target.email || "",
+      summary: `${action} ${targetType}: ${target.name || target.email || target._id}`,
+      requestId: req.requestId || "",
+    });
+  } catch (error) {
+    console.error(
+      "Unable to write admin activity log",
+      JSON.stringify({
+        requestId: req.requestId,
+        action,
+        targetType,
+        targetId: String(target._id),
+        error: error.message,
+      }),
+    );
+    return null;
+  }
+}
+
 const handleDeleteUser = async (req, res) => {
-  if (!requireAdmin(req)) {
+  const admin = requireAdmin(req);
+  if (!admin) {
     return res.status(401).json({ msg: "Admin authentication required" });
   }
 
@@ -168,7 +208,18 @@ const handleDeleteUser = async (req, res) => {
     if (!deletedUser) {
       return res.status(404).json({ msg: "User not found" });
     }
-    return res.status(200).json({ msg: "User deleted successfully" });
+    const activity = await recordAdminActivity(
+      req,
+      admin,
+      "Deleted",
+      "user account",
+      deletedUser,
+    );
+    return res.status(200).json({
+      msg: "User deleted successfully",
+      activity,
+      auditLogged: Boolean(activity),
+    });
   } catch (error) {
     console.error("Unable to delete user", error);
     return res.status(500).json({ msg: "Unable to delete user" });
@@ -176,7 +227,8 @@ const handleDeleteUser = async (req, res) => {
 };
 
 const handleDeleteProvider = async (req, res) => {
-  if (!requireAdmin(req)) {
+  const admin = requireAdmin(req);
+  if (!admin) {
     return res.status(401).json({ msg: "Admin authentication required" });
   }
 
@@ -190,9 +242,18 @@ const handleDeleteProvider = async (req, res) => {
     if (!deletedProvider) {
       return res.status(404).json({ msg: "Service provider not found" });
     }
-    return res
-      .status(200)
-      .json({ msg: "Service provider deleted successfully" });
+    const activity = await recordAdminActivity(
+      req,
+      admin,
+      "Deleted",
+      "service provider account",
+      deletedProvider,
+    );
+    return res.status(200).json({
+      msg: "Service provider deleted successfully",
+      activity,
+      auditLogged: Boolean(activity),
+    });
   } catch (error) {
     console.error("Unable to delete service provider", error);
     return res.status(500).json({ msg: "Unable to delete service provider" });

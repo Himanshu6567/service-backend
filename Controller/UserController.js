@@ -12,6 +12,9 @@ const handleCreateNewUser = async (req, res) => {
   if (!name || !normalizedEmail || !role || !mobile || !password) {
     return res.status(400).json({ mgs: "data not send by user" });
   }
+  if (!/^\d{10}$/.test(String(mobile).trim())) {
+    return res.status(400).json({ msg: "Mobile number must be exactly 10 digits" });
+  }
 
   const existingUser = await User.findOne({ email: normalizedEmail });
   if (existingUser) {

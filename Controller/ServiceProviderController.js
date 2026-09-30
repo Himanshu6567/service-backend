@@ -77,6 +77,11 @@ const handleCreateNewServiceProvider = async (req, res) => {
     ) {
       return res.status(400).json({ msg: "Incomplete data provided" });
     }
+    if (!/^\d{10}$/.test(String(mobile).trim())) {
+      return res
+        .status(400)
+        .json({ msg: "Mobile number must be exactly 10 digits" });
+    }
 
     if (!req.file) {
       console.log("Image is required");

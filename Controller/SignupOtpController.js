@@ -46,6 +46,12 @@ async function createSignupOtpChallenge(req) {
   if (!name?.trim() || !email || !mobile || !password || !role) {
     return { status: 400, body: { msg: "Signup details are incomplete" } };
   }
+  if (!/^\d{10}$/.test(String(mobile).trim())) {
+    return {
+      status: 400,
+      body: { msg: "Mobile number must be exactly 10 digits" },
+    };
+  }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { status: 400, body: { msg: "Enter a valid email address" } };
   }
